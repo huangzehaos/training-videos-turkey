@@ -35,15 +35,15 @@
   </div>
 
   <script>
-    const videoId = "KjfqUJd0FZs"; // 
+    const videoId = "KjfqUJd0FZs"; //
     const webAppUrl = "https://script.google.com/macros/s/AKfycbyXfMNVp38wwRA6Kz0rnzyrg3vrzyzmT-WnyvvBGiEKYqIfkHtu9ysO6ugo6oAtH5vC7Q/exec"; // 
     // 从 URL 获取 user_id
     const urlParams = new URLSearchParams(window.location.search);
     const userId = urlParams.get('user_id');
 
     if (!userId) {
-      alert("Lütfen resmi gönderilen bağlantıdan erişin. Bu sayfaya doğrudan giremezsiniz.");
-      window.location.href = "https://docs.google.com/forms/d/1RUQ08dD2YwQa05KQEuYajm3ClhGAHSxmbXnGkN4XusU/edit"; // 
+      alert("Lütfen resmi gönderilen bağlantıdan erişin.");
+      window.location.href = "https://docs.google.com/forms/d/e/1RUQ08dD2YwQa05KQEuYajm3ClhGAHSxmbXnGkN4XusU/viewform";
       throw new Error("user_id bulunamadı");
     }
 
@@ -60,13 +60,14 @@
       tag.src = "https://www.youtube.com/iframe_api";
       document.head.appendChild(tag);
 
-      window.onYouTubeIframeAPIReady = function() {
+      // 等待 YouTube API 加载完成
+      tag.onload = function() {
         player = new YT.Player('youtube-player', {
           height: '400',
           width: '100%',
           videoId: videoId,
           playerVars: {
-            'autoplay': 1,  // 自动播放（用户点击后）
+            'autoplay': 1,
             'controls': 1,
             'modestbranding': 1,
             'rel': 0
@@ -80,7 +81,6 @@
 
     function onPlayerStateChange(event) {
       if (event.data === YT.PlayerState.ENDED) {
-        // 完整播放完成！
         fetch(webAppUrl + `?action=complete&user_id=${userId}`, { method: 'GET' })
           .then(() => {
             document.getElementById('status').innerText = "Tebrikler! Eğitim tamamlandı.";
@@ -88,7 +88,7 @@
           })
           .catch(err => {
             console.error("Kayıt hatası:", err);
-            document.getElementById('status').innerText = "Kayıt yapılırken hata oluştu. Yöneticiye bildirin.";
+            document.getElementById('status').innerText = "Kayıt yapılırken hata oluştu.Yöneticiye bildirin.";
           });
       }
     }
