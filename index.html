@@ -68,7 +68,7 @@
     function onPlayerStateChange(event) {
       if (event.data === YT.PlayerState.ENDED) {
         // 完成播放
-        fetch(`https://script.google.com/macros/s/AKfycbyXfMNVp38wwRA6Kz0rnzyrg3vrzyzmT-WnyvvBGiEKYqIfkHtu9ysO6ugo6oAtH5vC7Q/exec`, { method: 'GET' });
+        fetch(`https://script.google.com/macros/s/AKfycbyXfMNVp38wwRA6Kz0rnzyrg3vrzyzmT-WnyvvBGiEKYqIfkHtu9ysO6ugo6oAtH5vC7Q/exec?action=complete&user_id=${userId}`, { method: 'GET' });
         document.getElementById('status').innerText = "Tebrikler! Eğitim tamamlandı.";
         document.getElementById('status').style.color = 'green';
       } else if (event.data === YT.PlayerState.PLAYING) {
@@ -91,4 +91,5 @@
     }
   </script>
 </body>
+
 </html>
