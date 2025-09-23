@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Eğitim Videosu</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      text-align: center; 
+      padding: 40px; 
+      background: #f5f5f5; 
+    }
+    .container { 
+      max-width: 800px; 
+      margin: auto; 
+      background: white; 
+      padding: 30px; 
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 { color: #333; }
+    button { 
+      padding: 15px 30px; 
+      font-size: 20px; 
+      background: #0066cc; 
+      color: white; 
+      border: none; 
+      border-radius: 8px; 
+      cursor: pointer; 
+      margin: 20px auto; 
+      display: block;
+      transition: background-color 0.3s;
+    }
+    button:hover { background: #0052a3; }
+    button:disabled { 
+      background: #cccccc; 
+      cursor: not-allowed; 
+    }
+    .warning { color: red; font-weight: bold; margin-top: 20px; }
+    .success { color: green; font-weight: bold; }
+    .info { color: blue; font-weight: bold; }
+    .error { color: red; font-weight: bold; }
+    #videoContainer {
+      margin-top: 30px;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .progress {
+      margin-top: 20px;
+      padding: 10px;
+      background: #f0f8ff;
+      border-radius: 5px;
+      border-left: 4px solid #0066cc;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Eğitim Videosu</h1>
+    <p>Lütfen aşağıdaki videoyu tamamen izleyin. İzleme kaydı otomatik olarak tutulacaktır.</p>
+
+    <button id="startBtn">Videoyu İzlemeye Başla</button>
+    <p class="info" id="status">İzleme durumu: Bekleniyor...</p>
+
+    <div id="videoContainer" style="display: none;">
+      <div id="youtube-player"></div>
+    </div>
+
+    <div id="progressInfo" class="progress" style="display: none;">
+      <p><strong>İzleme Bilgileri:</strong></p>
+      <p id="startTime"></p>
+      <p id="videoProgress">Video durumu: Yükleniyor...</p>
+    </div>
+  </div>
+
+  <script>
+    const videoId = "KjfqUJd0FZs"; // 🔄 替换为你的 YouTube 视频 ID
+    const webAppUrl = "https://script.google.com/macros/s/AKfycbxziQE6HjRD0HsZZDwG4P3u1NegLxwubtvxQmnAYgp24hBTZwo4sUImE1Z70d925o-XQQ/exec"; // 🔄 你的 Web App URL
+
+    // 从URL获取user_id
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('user_id');
+
+    let player = null;
+    let startRecorded = false;
+    let videoCompleted = false;
+
+    // 检查user_id
+    if (!userId) {
+      alert("Lütfen resmi gönderilen bağlantıdan erişin.");
+      window.location.href = "https://docs.google.com/forms/d/1RUQ08dD2YwQa05KQEuYajm3ClhGAHSxmbXnGkN4XusU/edit";
+      throw new Error("user_id bulunamadı");
+    }
+
+    // 显示用户ID（用于调试）
+    console.log("Kullanıcı ID:", userId);
+
+    document.getElementById('startBtn').addEventListener('click', startVideo);
+
+    function startVideo() {
+      const startBtn = document.getElementById('startBtn');
+      const status = document.getElementById('status');
+      const progressInfo = document.getElementById('progressInfo');
+      const startTime = document.getElementById('startTime');
+
+      startBtn.disabled = true;
+      startBtn.textContent = 'Yükleniyor...';
+      
+      status.innerText = "Video yükleniyor... Lütfen bekleyin.";
+      status.className = "info";
+      
+      progressInfo.style.display = 'block';
+      startTime.textContent = `Başlangıç zamanı: ${new Date().toLocaleString('tr-TR')}`;
+
+      // 记录开始观看
+      recordStart();
+
+      // 加载YouTube API
+      if (!window.YT) {
+        const tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        document.head.appendChild(tag);
+        
+        // 设置全局回调函数
+        window.onYouTubeIframeAPIReady = function() {
+          setTimeout(initializePlayer, 500);
+        };
+      } else {
+        initializePlayer();
+      }
+    }
+
+    function recordStart() {
+      const startBtn = document.getElementById('startBtn');
+      
+      fetch(`${webAppUrl}?action=start&user_id=${userId}`, { 
+        method: 'GET',
+        mode: 'no-cors' // 避免CORS问题
+      })
+      .then(() => {
+        startRecorded = true;
+        console.log("开始记录已保存");
+        startBtn.textContent = 'Kayıt Edildi ✓';
+      })
+      .catch(err => {
+        console.error("开始记录错误:", err);
+        startBtn.textContent = 'Kayıt Hatası';
+      });
+    }
+
+    function initializePlayer() {
+      const status = document.getElementById('status');
+      const videoContainer = document.getElementById('videoContainer');
+      
+      try {
+        videoContainer.style.display = 'block';
+        
+        player = new YT.Player('youtube-player', {
+          height: '400',
+          width: '100%',
+          videoId: videoId,
+          playerVars: {
+            'autoplay': 1,
+            'controls': 1,
+            'modestbranding': 1,
+            'rel': 0,
+            'showinfo': 0
+          },
+          events: {
+            'onReady': onPlayerReady,
+            'onStateChange': onPlayerStateChange,
+            'onError': onPlayerError
+          }
+        });
+        
+        status.innerText = "Video başlatıldı. İzleme kaydı tutulmaktadır.";
+        status.className = "info";
+        
+      } catch (error) {
+        console.error("播放器初始化错误:", error);
+        status.innerText = "Video yükleme hatası oluştu.";
+        status.className = "error";
+      }
+    }
+
+    function onPlayerReady(event) {
+      const videoProgress = document.getElementById('videoProgress');
+      videoProgress.textContent = "Video hazır - izlemeye başlayabilirsiniz!";
+      
+      // 开始播放
+      event.target.playVideo();
+    }
+
+    function onPlayerStateChange(event) {
+      const videoProgress = document.getElementById('videoProgress');
+      const status = document.getElementById('status');
+      
+      if (event.data === YT.PlayerState.PLAYING) {
+        videoProgress.textContent = "Video oynatılıyor... ▶️";
+        status.innerText = "Video izleniyor. Lütfen sonuna kadar izleyin.";
+        status.className = "info";
+        
+      } else if (event.data === YT.PlayerState.PAUSED) {
+        videoProgress.textContent = "Video duraklatıldı ⏸️";
+        
+      } else if (event.data === YT.PlayerState.ENDED && !videoCompleted) {
+        videoCompleted = true;
+        videoProgress.textContent = "Video tamamlandı! ✅";
+        
+        // 记录完成状态
+        recordCompletion();
+      }
+    }
+
+    function onPlayerError(event) {
+      const status = document.getElementById('status');
+      console.error("YouTube播放器错误:", event.data);
+      status.innerText = `Video yükleme hatası: Kod ${event.data}`;
+      status.className = "error";
+    }
+
+    function recordCompletion() {
+      const status = document.getElementById('status');
+      
+      fetch(`${webAppUrl}?action=complete&user_id=${userId}`, { 
+        method: 'GET',
+        mode: 'no-cors' // 避免CORS问题
+      })
+      .then(() => {
+        status.innerText = "🎉 Tebrikler! Eğitim tamamlandı ve kaydedildi.";
+        status.className = "success";
+        
+        // 添加完成时间显示
+        const progressInfo = document.getElementById('progressInfo');
+        const completionTime = document.createElement('p');
+        completionTime.innerHTML = `<strong>Tamamlanma zamanı:</strong> ${new Date().toLocaleString('tr-TR')}`;
+        progressInfo.appendChild(completionTime);
+        
+        console.log("完成记录已保存");
+      })
+      .catch(err => {
+        console.error("完成记录错误:", err);
+        status.innerText = "Video tamamlandı ancak kayıt sırasında hata oluştu.";
+        status.className = "warning";
+      });
+    }
+
+    // 防止页面关闭时丢失进度（可选）
+    window.addEventListener('beforeunload', function(e) {
+      if (startRecorded && !videoCompleted) {
+        e.preventDefault();
+        e.returnValue = 'Video henüz tamamlanmadı. Sayfadan çıkmak istediğinizden emin misiniz?';
+      }
+    });
+  </script>
+</body>
+</html>
